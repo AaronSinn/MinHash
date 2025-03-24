@@ -44,7 +44,7 @@ from heapq import heappop, heappush
 # This is the number of components in the resulting MinHash signatures.
 # Correspondingly, it is also the number of random hash functions that
 # we will need in order to calculate the MinHash.
-numHashes = 10;
+numHashes = 5
 
 # You can run this code for different portions of the dataset.
 # It ships with data set sizes 100, 1000, 2500, and 10000.
@@ -60,7 +60,7 @@ truthFile = "./data/articles_" + str(numDocs) + ".truth"
 plagiaries = {}
 
 # Open the truth file.
-f = open(truthFile, "rU")
+f = open(truthFile, "r", newline=None)
 
 # For each line of the files...
 for line in f:
@@ -72,6 +72,7 @@ for line in f:
   docs = line.split(" ")
 
   # Map the two documents to each other.
+  #print("doc1: ", docs[0], "doc2: ", docs[1])
   plagiaries[docs[0]] = docs[1]
   plagiaries[docs[1]] = docs[0]
 
@@ -79,7 +80,7 @@ for line in f:
 #               Convert Documents To Sets of Shingles
 # =============================================================================
 
-print "Shingling articles..."
+#print("Shingling articles...")
 
 # The current shingle ID value to assign to the next new shingle we 
 # encounter. When a shingle gets added to the dictionary, we'll increment this
@@ -88,10 +89,10 @@ curShingleID = 0
 
 # Create a dictionary of the articles, mapping the article identifier (e.g., 
 # "t8470") to the list of shingle IDs that appear in the document.
-docsAsShingleSets = {};
+docsAsShingleSets = {}
   
 # Open the data file.
-f = open(dataFile, "rU")
+f = open(dataFile, "r", newline=None)
 
 docNames = []
 
@@ -124,7 +125,7 @@ for i in range(0, numDocs):
     shingle = words[index] + " " + words[index + 1] + " " + words[index + 2]
 
     # Hash the shingle to a 32-bit integer.
-    crc = binascii.crc32(shingle) & 0xffffffff
+    crc = binascii.crc32(shingle.encode()) & 0xffffffff
     
     # Add the hash value to the list of shingles for the current document. 
     # Note that set objects will only add the value to the set if the set 
@@ -141,9 +142,9 @@ for i in range(0, numDocs):
 f.close()  
 
 # Report how long shingling took.
-print '\nShingling ' + str(numDocs) + ' docs took %.2f sec.' % (time.time() - t0)
+#print('\nShingling ' + str(numDocs) + ' docs took %.2f sec.' % (time.time() - t0))
  
-print '\nAverage shingles per doc: %.2f' % (totalShingles / numDocs)
+#print('\nAverage shingles per doc: %.2f' % (totalShingles / numDocs))
 
 # =============================================================================
 #                     Define Triangle Matrices
@@ -199,7 +200,7 @@ def getTriangleIndex(i, j):
 # of documents.
 if numDocs <= 2500:
 #if True:
-    print "\nCalculating Jaccard Similarities..."
+    #print("\nCalculating Jaccard Similarities...")
 
     # Time the calculation.
     t0 = time.time()
@@ -208,8 +209,8 @@ if numDocs <= 2500:
     for i in range(0, numDocs):
       
       # Print progress every 100 documents.
-      if (i % 100) == 0:
-        print "  (" + str(i) + " / " + str(numDocs) + ")"
+      # if (i % 100) == 0:
+      #   print("(" + str(i) + " / " + str(numDocs) + ")")
 
       # Retrieve the set of shingles for document i.
       s1 = docsAsShingleSets[docNames[i]]
@@ -224,7 +225,7 @@ if numDocs <= 2500:
     # Calculate the elapsed time (in seconds)
     elapsed = (time.time() - t0)
         
-    print "\nCalculating all Jaccard Similarities took %.2fsec" % elapsed
+    #print("\nCalculating all Jaccard Similarities took %.2fsec" % elapsed)
 
 # Delete the Jaccard Similarities, since it's a pretty big matrix.    
 del JSim
@@ -236,7 +237,7 @@ del JSim
 # Time this step.
 t0 = time.time()
 
-print '\nGenerating random hash functions...'
+#print('\nGenerating random hash functions...')
 
 # Record the maximum shingle ID that we assigned.
 maxShingleID = 2**32-1
@@ -277,7 +278,7 @@ def pickRandomCoeffs(k):
 coeffA = pickRandomCoeffs(numHashes)
 coeffB = pickRandomCoeffs(numHashes)
 
-print '\nGenerating MinHash signatures for all documents...'
+#print('\nGenerating MinHash signatures for all documents...')
 
 # List of documents represented as signature vectors
 signatures = []
@@ -309,14 +310,17 @@ for docID in docNames:
     # For each shingle in the document...
     for shingleID in shingleIDSet:
       # Evaluate the hash function.
-      hashCode = (coeffA[i] * shingleID + coeffB[i]) % nextPrime 
+      hashCode = ((coeffA[i] * shingleID + coeffB[i]) % nextPrime)
       
       # Track the lowest hash code seen.
       if hashCode < minHashCode:
         minHashCode = hashCode
 
+      
+
     # Add the smallest hash code value as component number 'i' of the signature.
     signature.append(minHashCode)
+    minHashCode ^ random.randint(0, 2147483647)
   
   # Store the MinHash signature for this document.
   signatures.append(signature)
@@ -324,13 +328,13 @@ for docID in docNames:
 # Calculate the elapsed time (in seconds)
 elapsed = (time.time() - t0)
         
-print "\nGenerating MinHash signatures took %.2fsec" % elapsed  
+#print("\nGenerating MinHash signatures took %.2fsec" % elapsed  )
 
 # =============================================================================
 #                     Compare All Signatures
 # =============================================================================  
 
-print '\nComparing all signatures...'  
+#print('\nComparing all signatures...')  
   
 # Creates a N x N matrix initialized to 0.
 
@@ -359,7 +363,7 @@ for i in range(0, numDocs):
 # Calculate the elapsed time (in seconds)
 elapsed = (time.time() - t0)
         
-print "\nComparing MinHash signatures took %.2fsec" % elapsed  
+#print("\nComparing MinHash signatures took %.2fsec" % elapsed)
     
     
 # =============================================================================
@@ -371,12 +375,13 @@ tp = 0
 fp = 0
   
 threshold = 0.5  
-print "\nList of Document Pairs with J(d1,d2) more than", threshold
-print "Values shown are the estimated Jaccard similarity and the actual"
-print "Jaccard similarity.\n"
-print "                   Est. J   Act. J"
+# print ("\nList of Document Pairs with J(d1,d2) more than", threshold)
+# print ("Values shown are the estimated Jaccard similarity and the actual")
+# print ("Jaccard similarity.\n")
+# print ("                   Est. J   Act. J")
 
 # For each of the document pairs...
+#print("PLAG: ", plagiaries)
 for i in range(0, numDocs):  
   for j in range(i + 1, numDocs):
     # Retrieve the estimated similarity value for this pair.
@@ -391,17 +396,21 @@ for i in range(0, numDocs):
       J = (len(s1.intersection(s2)) / len(s1.union(s2)))
       
       # Print out the match and similarity values with pretty spacing.
-      print "  %5s --> %5s   %.2f     %.2f" % (docNames[i], docNames[j], estJ, J)
+      #print("  %5s --> %5s   %.2f     %.2f" % (docNames[i], docNames[j], estJ, J))
       
       # Check whether this is a true positive or false positive.
       # We don't need to worry about counting the same true positive twice
       # because we implemented the for-loops to only compare each pair once.
-      if plagiaries[docNames[i]] == docNames[j]:
-        tp = tp + 1
-      else:
-        fp = fp + 1
+      
+      try:
+        if plagiaries[docNames[i]] == docNames[j]:
+          tp = tp + 1
+        else:
+          fp = fp + 1
+      except:
+          #print("\033[91m  %5s --> %5s   %.2f     %.2f\033[0m" % (docNames[i], docNames[j], estJ, J))
+          fp = fp + 1
 
 # Display true positive and false positive counts.
-print
-print "True positives:  " + str(tp) + " / " + str(int(len(plagiaries.keys()) / 2))
-print "False positives: " + str(fp)
+print ("True positives:  " + str(tp) + " / " + str(int(len(plagiaries.keys()) / 2)))
+print ("False positives: " + str(fp))
